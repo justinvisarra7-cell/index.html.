@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bloom Tower</title>
+  <style>
+    :root {
+      --bg1: #1a132a;
+      --bg2: #2d1e3d;
+      --petal: #ff7eb6;
+      --gold: #ffd76b;
+      --leaf: #8ce39f;
+      --stone: #c8b7d6;
+      --dark: #2b1d2d;
+      --cream: #f9f4df;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      background: radial-gradient(circle at top, #402d5d, var(--bg1) 45%, #120d1d 100%);
+      font-family: Arial, sans-serif;
+      color: var(--cream);
+    }
+
+    .game-shell {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      padding: 18px;
+      background: rgba(255,255,255,0.05);
+      border: 2px solid rgba(255,255,255,0.13);
+      border-radius: 20px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.25);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 28px;
+      letter-spacing: 2px;
+      color: #ffe6a8;
+      text-shadow: 0 0 12px rgba(255, 223, 130, 0.7);
+    }
+
+    canvas {
+      display: block;
+      width: min(76vw, 720px);
+      height: auto;
+      border-radius: 16px;
+      background: linear-gradient(#221735, #452d5f);
+      border: 4px solid #ffd76b;
+      box-shadow: 0 0 16px rgba(255, 215, 107, 0.3);
+    }
+
+    .hud {
+      width: min(76vw, 720px);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      font-size: 14px;
+      color: #f4e7ff;
+    }
+
+    .label {
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 999px;
+      padding: 8px 12px;
+    }
+
+    .letter-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .letter-modal.active {
+      display: flex;
+    }
+
+    .letter-content {
+      background: linear-gradient(135deg, #f9f4df 0%, #ffe6a8 100%);
+      border: 8px solid #7d6289;
+      border-radius: 16px;
+      padding: 40px;
+      max-width: 600px;
+      width: 90%;
+      box-shadow: 0 0 30px rgba(255, 215, 107, 0.5);
+      text-align: center;
+      color: #2b1d2d;
+      font-family: Arial, sans-serif;
+    }
+
+    .letter-content h2 {
+      margin: 0 0 20px 0;
+      font-size: 28px;
+      color: #8ce39f;
+      text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+    }
+
+    .letter-content p {
+      margin: 0 0 15px 0;
+      font-size: 16px;
+      line-height: 1.6;
+      color: #402d5d;
+    }
+
+    .letter-content button {
+      background: #ff7eb6;
+      color: white;
+      border: none;
+      padding: 12px 30px;
+      font-size: 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      margin-top: 20px;
+      transition: all 0.3s;
+    }
+
+    .letter-content button:hover {
+      background: #ff5fa3;
+      transform: scale(1.05);
+    }
+
+    .letter-buttons {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      margin-top: 20px;
+    }
+
+    .letter-buttons button {
+      margin-top: 0;
+    }
+
+    .edit-btn {
+      background: #8ce39f !important;
+    }
+
+    .edit-btn:hover {
+      background: #6db585 !important;
+    }
+
+    .editor-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      z-index: 1001;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .editor-modal.active {
+      display: flex;
+    }
+
+    .editor-content {
+      background: linear-gradient(135deg, #f9f4df 0%, #ffe6a8 100%);
+      border: 8px solid #7d6289;
+      border-radius: 16px;
+      padding: 30px;
+      max-width: 700px;
+      width: 90%;
+      box-shadow: 0 0 30px rgba(255, 215, 107, 0.5);
+      color: #2b1d2d;
+      font-family: Arial, sans-serif;
+    }
+
+    .editor-content h2 {
+      margin: 0 0 20px 0;
+      font-size: 24px;
+      color: #8ce39f;
+    }
+
+    .editor-content label {
+      display: block;
+      margin-bottom: 10px;
+      font-weight: bold;
+      color: #402d5d;
+    }
+
+    .editor-content input,
+    .editor-content textarea {
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 15px;
+      border: 2px solid #7d6289;
+      border-radius: 8px;
+      font-family: Arial, sans-serif;
+      font-size: 14px;
+      box-sizing: border-box;
+      color: #2b1d2d;
+    }
+
+    .editor-content textarea {
+      min-height: 100px;
+      resize: vertical;
+    }
+
+    .editor-buttons {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+    }
+
+    .editor-buttons button {
+      background: #ff7eb6;
+      color: white;
+      border: none;
+      padding: 12px 30px;
+      font-size: 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .editor-buttons button:hover {
+      background: #ff5fa3;
+      transform: scale(1.05);
+    }
+
+    .cancel-btn {
+      background: #c8b7d6 !important;
+    }
+
+    .cancel-btn:hover {
+      background: #a89cb5 !important;
+    }
+  </style>
+</head>
+<body>
+  <div class="game-shell">
+    <h1>Bloom Tower</h1>
+    <canvas id="game" width="720" height="520"></canvas>
+    <div class="hud">
+      <div id="status" class="label">Floor 1 of 8</div>
+      <div id="objective" class="label">Collect 3 petals</div>
+    </div>
+  </div>
+
+  <div class="letter-modal" id="letterModal">
+    <div class="letter-content">
+      <h2 id="letterTitle">Letter from the Tower</h2>
+      <p id="letterText">You've unlocked the chest!</p>
+      <div class="letter-buttons">
+        <button class="edit-btn" onclick="openLetterEditor()">✏️ Edit</button>
+        <button onclick="closeLetter()">Continue</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="editor-modal" id="editorModal">
+    <div class="editor-content">
+      <h2>Edit Letter</h2>
+      <label>Title:</label>
+      <input type="text" id="editTitle" placeholder="Letter title">
+      <label>Message:</label>
+      <textarea id="editText" placeholder="Letter message"></textarea>
+      <div class="editor-buttons">
+        <button onclick="saveLetterEdit()">Save</button>
+        <button class="cancel-btn" onclick="closeLetterEditor()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
+    const statusEl = document.getElementById('status');
+    const objectiveEl = document.getElementById('objective');
+
+    const TILE = 32;
+    const MAP_W = 18;
+    const MAP_H = 12;
+
+    const levels = [
+      {
+        name: 'Moonpetal Hall',
+        required: 3,
+        item: 'petal',
+        letterTitle: '7 more to go!',
+        letterText: 'hehe hi baby finish this small game muhahhaahaha',
+        map: [
+          '##################',
+          '#S.P..........P.#',
+          '#................#',
+          '#................#',
+          '#................#',
+          '#................#',
+          '#................#',
+          '#................#',
+          '#................#',
+          '#................#',
+          '#C.P..........P.#',
+          '##################'
+        ]
+      },
+      {
+        name: 'Sun Dew Floor',
+        required: 4,
+        item: 'dew',
+        letterTitle: '6 more to go!',
+        letterText: 'nice one baby go go!',
+        map: [
+          '##################',
+          '#S..P....#....P.#',
+          '#.##.#..#..#.#.#',
+          '#....#..#..#...#',
+          '#.##.#.##.#.##.#',
+          '#....#....#....#',
+          '#.##.##.##.##.#',
+          '#P...#....#...P#',
+          '#.##.#.##.#.##.#',
+          '#....#....#....#',
+          '#C.............#',
+          '##################'
+        ]
+      },
+      {
+        name: 'Beehive Ring',
+        required: 3,
+        item: 'berry',
+        letterTitle: '5 more to go!',
+        letterText: 'aba kagaling naman ng baby kohh hehe',
+        map: [
+          '##################',
+          '#S....P....#....#',
+          '#.##.##.#.#.##.#',
+          '#....#..#.#....#',
+          '#.##.#.##.###.#',
+          '#P......#......#',
+          '#.####.#.####.#',
+          '#....#...#....P#',
+          '#.##.###.#.##.#',
+          '#......#...#...#',
+          '#C.............#',
+          '##################'
+        ]
+      },
+      {
+        name: 'Misty Vines',
+        required: 5,
+        item: 'seed',
+        letterTitle: '4 more to go!',
+        letterText: 'iloveuuu hehe imissuuu',
+        map: [
+          '##################',
+          '#S..P...#....P.#',
+          '#.##.#.#.#.#.#.#',
+          '#....#....#....#',
+          '#.####.##.##.#.#',
+          '#P......#...P..#',
+          '#.##.#..#.#.#.#',
+          '#..#.#.##.#.#.#',
+          '#..#....#....P.#',
+          '#....####......#',
+          '#C.............#',
+          '##################'
+        ]
+      },
+      {
+        name: 'Glowroot Stair',
+        required: 4,
+        item: 'spark',
+        letterTitle: '3 more to go!',
+        letterText: 'saan tayu kain hehe gutom ako',
+        map: [
+          '##################',
+          '#S....P.#..P...#',
+          '#.##.#.#.##.#.#',
+          '#..#...#....#..#',
+          '#.##.##.######.#',
+          '#P....#....#...#',
+          '#.##.#.##.#.#.#',
+          '#....#..P.#...#',
+          '#.##.#.##.#.#.#',
+          '#....#.......P.#',
+          '#C.............#',
+          '##################'
+        ]
+      },
+      {
+        name: 'Lantern Bloom',
+        required: 3,
+        item: 'lantern',
+        letterTitle: '2 more to go!',
+        letterText: 'anu lalaruin natin hehehe',
+        map: [
+          '##################',
+          '#S.P....#...P..#',
+          '#.#.##.#.##.#.#',
+          '#.#....#....#.#',
+          '#.###.##.##.#.#',
+          '#...#....P....#',
+          '#.#.#.##.#.##.#',
+          '#.#...#..#....#',
+          '#.###.#.##.#P.#',
+          '#....#........#',
+          '#C.............#',
+          '##################'
+        ]
+      },
+      {
+        name: 'Velvet Orchid',
+        required: 5,
+        item: 'orchid',
+        letterTitle: '1 more to go!',
+        letterText: 'anu galawwwww',
+        map: [
+          '##################',
+          '#S.P....#..P...#',
+          '#.##.#.#.#.#.#',
+          '#....#...#....#',
+          '#.##.###.#.##.#',
+          '#P....#...#P..#',
+          '#.##.#.#.#.#.#',
+          '#....#...#....#',
+          '#.##.###.#.##.#',
+          '#......P......#',
+          '#C.............#',
+          '##################'
+        ]
+      },
+      {
+        name: 'Final Bloom',
+        required: 6,
+        item: 'gem',
+        letterTitle: '🎉 You Win! 🎉',
+        letterText: 'iloveusomuchhh',
+        map: [
+          '##################',
+          '#S..P....#...P.#',
+          '#.#.##.#.#.##.#',
+          '#.#....#.#....#',
+          '#.#.##.#.##.#.#',
+          '#P....#....#..#',
+          '#.##.#.##.#.#.#',
+          '#....#..P.#...#',
+          '#.##.#.##.#.##.#',
+          '#P...#......P..#',
+          '#C.............#',
+          '##################'
+        ]
+      }
+    ];
+
+    let currentLevel = 0;
+    let player = { x: 1, y: 1, width: 0.7, height: 0.7 };
+    let collected = 0;
+    let chestUnlocked = false;
+    let moveLocked = false;
+    let message = 'Collect all glowing items to unlock the chest!';
+
+    function tileAt(x, y) {
+      const level = levels[currentLevel];
+      if (y < 0 || y >= level.map.length) return '#';
+      const row = level.map[y];
+      if (x < 0 || x >= row.length) return '#';
+      return row[x];
+    }
+
+    function resetLevel(index) {
+      currentLevel = index;
+      const level = levels[currentLevel];
+      player.x = 1;
+      player.y = 1;
+      collected = 0;
+      chestUnlocked = false;
+      message = level.name + ': ' + level.item + ' hunt';
+      statusEl.textContent = 'Floor ' + (currentLevel + 1) + ' of 8';
+      objectiveEl.textContent = 'Collect ' + level.required + ' ' + level.item + 's';
+      buildLevelMap();
+    }
+
+    const activeItems = [];
+
+    function buildLevelMap() {
+      activeItems.length = 0;
+      const level = levels[currentLevel];
+      for (let y = 0; y < level.map.length; y++) {
+        for (let x = 0; x < level.map[y].length; x++) {
+          const c = level.map[y][x];
+          if (c === 'P') {
+            activeItems.push({ x, y, color: '#ffeb72', type: level.item, collected: false, pulse: Math.random() * Math.PI * 2 });
+          }
+          // Find chest position from map
+          if (c === 'C') {
+            level.chestX = x;
+            level.chestY = y;
+          }
+        }
+      }
+    }
+
+    function collectNearbyItems() {
+      const level = levels[currentLevel];
+      for (let i = activeItems.length - 1; i >= 0; i--) {
+        const item = activeItems[i];
+        const dist = Math.abs(item.x - player.x) + Math.abs(item.y - player.y);
+        if (!item.collected && dist <= 1) {
+          item.collected = true;
+          collected += 1;
+          message = 'Found a ' + level.item + '!';
+          if (collected >= level.required) {
+            message = 'Chest unlocked! Reach the glowing chest.';
+            chestUnlocked = true;
+          }
+        }
+      }
+    }
+
+    function showLetter() {
+      const level = levels[currentLevel];
+      const letterTitle = document.getElementById('letterTitle');
+      const letterText = document.getElementById('letterText');
+      const modal = document.getElementById('letterModal');
+
+      letterTitle.textContent = level.letterTitle;
+      letterText.textContent = level.letterText;
+      modal.classList.add('active');
+    }
+
+    function openLetterEditor() {
+      const level = levels[currentLevel];
+      document.getElementById('editTitle').value = level.letterTitle;
+      document.getElementById('editText').value = level.letterText;
+      document.getElementById('editorModal').classList.add('active');
+    }
+
+    function closeLetterEditor() {
+      document.getElementById('editorModal').classList.remove('active');
+    }
+
+    function saveLetterEdit() {
+      const level = levels[currentLevel];
+      level.letterTitle = document.getElementById('editTitle').value;
+      level.letterText = document.getElementById('editText').value;
+      
+      document.getElementById('letterTitle').textContent = level.letterTitle;
+      document.getElementById('letterText').textContent = level.letterText;
+      
+      closeLetterEditor();
+    }
+
+    function closeLetter() {
+      const modal = document.getElementById('letterModal');
+      modal.classList.remove('active');
+      if (currentLevel < levels.length - 1) {
+        resetLevel(currentLevel + 1);
+        moveLocked = false;
+      } else {
+        resetLevel(0);
+        moveLocked = false;
+      }
+    }
+
+    function movePlayer(dx, dy) {
+      if (moveLocked) return;
+      const nextX = Math.round(player.x + dx);
+      const nextY = Math.round(player.y + dy);
+      const tile = tileAt(nextX, nextY);
+      if (tile === '#') return;
+      player.x = nextX;
+      player.y = nextY;
+      collectNearbyItems();
+      const level = levels[currentLevel];
+      if (Math.round(player.x) === level.chestX && Math.round(player.y) === level.chestY && chestUnlocked) {
+        moveLocked = true;
+        showLetter();
+      }
+    }
+
+    function keyHandler(event) {
+      const key = event.key.toLowerCase();
+
+      const dirs = {
+        arrowup: [0, -1],
+        w: [0, -1],
+        arrowdown: [0, 1],
+        s: [0, 1],
+        arrowleft: [-1, 0],
+        a: [-1, 0],
+        arrowright: [1, 0],
+        d: [1, 0]
+      };
+
+      const dir = dirs[key];
+      if (dir) {
+        movePlayer(dir[0], dir[1]);
+        event.preventDefault();
+      }
+    }
+
+    document.addEventListener('keydown', keyHandler);
+
+    function drawBackground() {
+      ctx.fillStyle = '#261a36';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      for (let i = 0; i < 18; i++) {
+        ctx.beginPath();
+        ctx.fillStyle = i % 2 === 0 ? 'rgba(255, 153, 188, 0.18)' : 'rgba(255, 224, 119, 0.12)';
+        ctx.ellipse(40 + i * 38, 35 + (i % 4) * 24, 18, 26, Math.PI / 8 * i, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    function drawMap() {
+      const level = levels[currentLevel];
+      const offsetX = 44;
+      const offsetY = 36;
+
+      for (let y = 0; y < level.map.length; y++) {
+        for (let x = 0; x < level.map[y].length; x++) {
+          const sx = offsetX + x * TILE;
+          const sy = offsetY + y * TILE;
+          const ch = level.map[y][x];
+          if (ch === '#') {
+            ctx.fillStyle = '#7d6289';
+            ctx.fillRect(sx, sy, TILE, TILE);
+            ctx.fillStyle = '#dbc2e9';
+            ctx.fillRect(sx + 4, sy + 4, TILE - 8, 6);
+            ctx.fillRect(sx + 4, sy + 16, TILE - 8, 6);
+            ctx.fillRect(sx + 4, sy + 28, TILE - 8, 4);
+          } else {
+            ctx.fillStyle = '#382c4d';
+            ctx.fillRect(sx, sy, TILE, TILE);
+            if ((x + y) % 2 === 0) {
+              ctx.fillStyle = 'rgba(255,255,255,0.02)';
+              ctx.fillRect(sx + 2, sy + 2, TILE - 4, TILE - 4);
+            }
+          }
+          // Draw spawn point label
+          if (ch === 'S') {
+            ctx.fillStyle = '#8ce39f';
+            ctx.font = 'bold 18px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('S', sx + TILE / 2, sy + TILE / 2);
+          }
+        }
+      }
+
+      const chestX = offsetX + level.chestX * TILE;
+      const chestY = offsetY + level.chestY * TILE;
+      ctx.fillStyle = chestUnlocked ? '#ffd76b' : '#64457d';
+      ctx.fillRect(chestX + 7, chestY + 7, TILE - 14, TILE - 14);
+      ctx.fillStyle = chestUnlocked ? '#ffefb3' : '#9a7bb5';
+      ctx.fillRect(chestX + 12, chestY + 12, TILE - 24, TILE - 24);
+      ctx.fillStyle = chestUnlocked ? '#f5964a' : '#40314d';
+      ctx.fillRect(chestX + 14, chestY + 4, 4, 8);
+      ctx.fillRect(chestX + 14, chestY + 22, 4, 8);
+      
+      // Draw chest label
+      ctx.fillStyle = chestUnlocked ? '#ffd76b' : '#dbc2e9';
+      ctx.font = 'bold 18px Arial';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('C', chestX + TILE / 2, chestY + TILE / 2);
+
+      activeItems.forEach((item, idx) => {
+        if (item.collected) return;
+        const px = offsetX + item.x * TILE + TILE / 2;
+        const py = offsetY + item.y * TILE + TILE / 2;
+        const s = 10 + Math.sin(performance.now() * 0.006 + idx) * 3;
+        ctx.beginPath();
+        ctx.fillStyle = item.color;
+        ctx.arc(px, py, s, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.fillStyle = 'rgba(255,255,255,0.7)';
+        ctx.arc(px - 2, py - 2, s * 0.35, 0, Math.PI * 2);
+        ctx.fill();
+      });
+    }
+
+    function drawPlayer() {
+      const px = 44 + player.x * TILE + TILE / 2;
+      const py = 36 + player.y * TILE + TILE / 2;
+
+      ctx.beginPath();
+      ctx.fillStyle = '#f6d88a';
+      ctx.arc(px, py, 10, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.fillStyle = '#f7a7a4';
+      ctx.arc(px - 6, py - 4, 3, 0, Math.PI * 2);
+      ctx.arc(px + 6, py - 4, 3, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = '#7d7ef7';
+      ctx.fillRect(px - 10, py + 6, 20, 8);
+
+      ctx.beginPath();
+      ctx.fillStyle = '#ffe5a8';
+      ctx.ellipse(px, py - 14, 12, 16, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.fillStyle = '#ff9ec7';
+      ctx.moveTo(px, py - 10);
+      ctx.bezierCurveTo(px + 18, py - 2, px + 22, py + 14, px, py + 12);
+      ctx.bezierCurveTo(px - 18, py + 14, px - 22, py - 2, px, py - 10);
+      ctx.fill();
+    }
+
+    function drawHudText() {
+      const level = levels[currentLevel];
+      const story = 'Collect ' + collected + '/' + level.required + ' ' + level.item + 's';
+      ctx.fillStyle = '#fff7d6';
+      ctx.font = '18px Arial';
+      ctx.fillText(level.name, 28, 28);
+      ctx.fillText(story, 28, canvas.height - 16);
+      ctx.fillText(message, 420, canvas.height - 16);
+      if (currentLevel === levels.length - 1 && chestUnlocked) {
+        ctx.fillStyle = '#ffcc59';
+        ctx.fillText('Final chest: open and win!', 420, canvas.height - 38);
+      }
+    }
+
+    function render() {
+      drawBackground();
+      drawMap();
+      drawPlayer();
+      drawHudText();
+    }
+
+    function loop() {
+      render();
+      requestAnimationFrame(loop);
+    }
+
+    resetLevel(0);
+    loop();
+  </script>
+</body>
+</html>
